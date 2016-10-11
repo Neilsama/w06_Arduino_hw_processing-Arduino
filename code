@@ -1,0 +1,113 @@
+import ddf.minim.*;
+import ddf.minim.analysis.*;
+import ddf.minim.effects.*;
+import ddf.minim.signals.*;
+import ddf.minim.spi.*;
+import ddf.minim.ugens.*;
+
+
+import processing.serial.*;
+
+import cc.arduino.*;
+import org.firmata.*;
+
+Arduino arduino;
+Minim minim;
+AudioPlayer music;
+FFT fft;
+
+int counter; //avoid arduino button bounce
+
+int num = 300; //total spots on screen
+
+PVector[] positionArr = new PVector[num]; //position of 300 spots
+PVector[] noiseArr = new PVector[num]; 
+
+
+
+void setup(){
+  size(1900,500);
+  background(0);
+  
+  arduino = new Arduino(this, Arduino.list()[1], 57600);
+  arduino.pinMode(12, Arduino.INPUT);
+  
+  for(int i = 2; i<= 6; i++){
+  arduino.pinMode(i, Arduino.OUTPUT);
+  arduino.digitalWrite(i, Arduino.HIGH);
+  }
+  
+  
+  minim = new Minim(this);
+  music = minim.loadFile("music1.mp3", 2048);
+  fft = new FFT(music.bufferSize(),music.sampleRate());
+}
+
+void draw(){
+  fill(255);
+  textSize(120);
+  text("flash with music",220,300);
+  
+  int buttonState = arduino.digitalRead(12);
+  /* -------detect button press -------*/
+    if(buttonState == 1){
+    /*use a counter to avoid bouncing*/
+      counter++;
+      println(counter);
+    }
+    else{
+    /*if not pressed,counter reset to 0*/
+    counter = 0;
+    }
+  /* -------when counter bigger than 5, button is pressed, play the music -------*/
+  if(counter >= 5){
+    if(music.isPlaying()){
+      music.pause();
+      counter = 0;
+    }
+    else{
+      music.play();
+      music.loop();
+      counter=0;
+    }
+  }
+  
+  /* music visualize */
+  fft.forward(music.mix);
+  float fftVal = fft.getBand(400);
+  println("FFT VALUE = "+fftVal);
+  
+  if(fftVal >= 0.1 && fftVal <= 0.2){
+    arduino.digitalWrite(2, Arduino.LOW);
+  }
+  else{
+    arduino.digitalWrite(2, Arduino.HIGH);
+  }
+    
+  if(fftVal > 0.2 && fftVal <= 0.3){
+    arduino.digitalWrite(3, Arduino.LOW);
+  }
+  else{
+    arduino.digitalWrite(3, Arduino.HIGH);
+  } 
+  if(fftVal > 0.3 && fftVal <= 0.4){
+    arduino.digitalWrite(4, Arduino.LOW);
+  }
+  else{
+    arduino.digitalWrite(4, Arduino.HIGH);
+  } 
+  if(fftVal > 0.4 && fftVal <= 0.5){
+    arduino.digitalWrite(5, Arduino.LOW);
+  }
+  else{
+    arduino.digitalWrite(5, Arduino.HIGH);
+  } 
+  if(fftVal > 0.5){
+    arduino.digitalWrite(6, Arduino.LOW);
+  }
+  else{
+    arduino.digitalWrite(6, Arduino.HIGH);
+  }
+  
+  
+}
